@@ -15,13 +15,7 @@ public class KafkaConsumerService : IKafkaConsumerService
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _topic;
 
-    public KafkaConsumerService(
-        string bootstrapServers,
-        string topic,
-        string groupId,
-        IReportValidationService validationService,
-        IElasticsearchService elasticsearchService,
-        ILogger<KafkaConsumerService> logger)
+    public KafkaConsumerService(string bootstrapServers,string topic,string groupId,IReportValidationService validationService,IElasticsearchService elasticsearchService,ILogger<KafkaConsumerService> logger)
     {
         _topic = topic;
         _validationService = validationService;
@@ -35,49 +29,27 @@ public class KafkaConsumerService : IKafkaConsumerService
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false
         };
-
-        _consumer =
-            new ConsumerBuilder<string, string>(
-                configuration
-            ).Build();
-
+        _consumer =new ConsumerBuilder<string, string>(configuration).Build();
         _jsonOptions = new JsonSerializerOptions();
-
-        _jsonOptions.Converters.Add(
-            new JsonStringEnumConverter()
-        );
+        _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
-    public async Task StartConsumingAsync(
-        CancellationToken cancellationToken)
+    public async Task StartConsumingAsync(CancellationToken cancellationToken)
     {
         _consumer.Subscribe(_topic);
-
-        _logger.LogInformation(
-            "Consumer is listening to topic {Topic}",
-            _topic
-        );
-
+        _logger.LogInformation("Consumer is listening to topic {Topic}",_topic);
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                ConsumeResult<string, string> result =
-                    _consumer.Consume(cancellationToken);
-
-                await ProcessMessageAsync(
-                    result.Message.Value,
-                    cancellationToken
-                );
-
+                ConsumeResult<string, string> result =_consumer.Consume(cancellationToken);
+                await ProcessMessageAsync(result.Message.Value,cancellationToken);
                 _consumer.Commit(result);
             }
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation(
-                "Consumer stopped"
-            );
+            _logger.LogInformation( "Consumer stopped");
         }
         finally
         {
@@ -85,59 +57,28 @@ public class KafkaConsumerService : IKafkaConsumerService
         }
     }
 
-    private async Task ProcessMessageAsync(
-        string json,
-        CancellationToken cancellationToken)
+    private async Task ProcessMessageAsync(string json,CancellationToken cancellationToken)
     {
         try
         {
-            FieldReport? report =
-                JsonSerializer.Deserialize<FieldReport>(
-                    json,
-                    _jsonOptions
-                );
-
+            FieldReport? report =JsonSerializer.Deserialize<FieldReport>(json,_jsonOptions);
             if (report is null)
             {
-                _logger.LogWarning(
-                    "Report rejected: JSON is empty"
-                );
-
+                _logger.LogWarning( "Report rejected: JSON is empty");
                 return;
             }
 
-            bool isValid =
-                _validationService.IsValid(
-                    report,
-                    json,
-                    out string errorMessage
-                );
+            bool isValid = _validationService.IsValid( report,json,out string errorMessage);
 
             if (!isValid)
             {
-                _logger.LogWarning(
-                    "Report {ReportId} rejected: {ErrorMessage}",
-                    report.ReportId,
-                    errorMessage
-                );
-
+                _logger.LogWarning("Report {ReportId} rejected: {ErrorMessage}",report.ReportId,errorMessage);
                 return;
             }
-
-            bool alreadyExists =
-                await _elasticsearchService
-                    .ReportExistsAsync(
-                        report.ReportId!,
-                        cancellationToken
-                    );
-
+            bool alreadyExists = await _elasticsearchService.ReportExistsAsync(report.ReportId!,cancellationToken);
             if (alreadyExists)
             {
-                _logger.LogWarning(
-                    "Duplicate report rejected: {ReportId}",
-                    report.ReportId
-                );
-
+                _logger.LogWarning("Duplicate report rejected: {ReportId}",report.ReportId);
                 return;
             }
 
@@ -159,22 +100,12 @@ public class KafkaConsumerService : IKafkaConsumerService
                 ProcessedAt = DateTimeOffset.UtcNow
             };
 
-            await _elasticsearchService.SaveReportAsync(
-                document,
-                cancellationToken
-            );
-
-            _logger.LogDebug(
-                "Report {ReportId} saved",
-                report.ReportId
-            );
+            await _elasticsearchService.SaveReportAsync(document,cancellationToken);
+            _logger.LogDebug("Report {ReportId} saved",report.ReportId);
         }
         catch (JsonException exception)
         {
-            _logger.LogWarning(
-                "Report rejected because the JSON is invalid: {ErrorMessage}",
-                exception.Message
-            );
+            _logger.LogWarning("Report rejected because the JSON is invalid: {ErrorMessage}", exception.Message);
         }
     }
 }

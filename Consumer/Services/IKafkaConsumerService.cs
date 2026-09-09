@@ -2,7 +2,5 @@ namespace Consumer.Services;
 
 public interface IKafkaConsumerService
 {
-    Task StartConsumingAsync(
-        CancellationToken cancellationToken
-    );
+    Task StartConsumingAsync(CancellationToken cancellationToken);
 }
