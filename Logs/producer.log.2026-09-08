@@ -1,0 +1,8 @@
+2026-09-08 17:24:40 [INFO] Topic 'field-reports' already exists
+2026-09-08 17:24:40 [INFO] Successfully loaded 420 reports
+2026-09-08 17:24:40 [INFO] Successfully sent 420 reports to topic 'field-reports'
+2026-09-08 17:34:07 [INFO] Producer application started
+2026-09-08 17:34:07 [INFO] Topic 'field-reports' already exists
+2026-09-08 17:34:07 [INFO] Successfully loaded 420 reports
+2026-09-08 17:34:07 [INFO] Successfully sent 420 reports to topic 'field-reports'
+2026-09-08 17:34:07 [INFO] Producer application finished

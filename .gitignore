@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Environment variables;
+
+# C#
+bin/
+obj/
+
+# Visual Studio
+.vs/
+
+# VS Code
+.vscode/
