@@ -69,7 +69,6 @@ public class KafkaConsumerService : IKafkaConsumerService
             }
 
             bool isValid = _validationService.IsValid( report,json,out string errorMessage);
-
             if (!isValid)
             {
                 _logger.LogWarning("Report {ReportId} rejected: {ErrorMessage}",report.ReportId,errorMessage);
