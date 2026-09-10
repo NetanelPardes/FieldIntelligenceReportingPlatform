@@ -7,7 +7,7 @@ public class FieldReport
     [JsonPropertyName("reportId")]
     public string? ReportId { get; set; }
 
-    [JsonPropertyName("timestamp")]
+    [JsonPropertyName("@timestamp")]
     public DateTimeOffset? Timestamp { get; set; }
 
     [JsonPropertyName("agentId")]
@@ -26,10 +26,10 @@ public class FieldReport
     public string? Location { get; set; }
 
     [JsonPropertyName("reportType")]
-    public string ReportType { get; set; } = string.Empty;
+    public string? ReportType { get; set; }
 
     [JsonPropertyName("priority")]
-    public string Priority { get; set; } = string.Empty;
+    public string? Priority { get; set; }
 
     [JsonPropertyName("sourceType")]
     public string? SourceType { get; set; }
@@ -42,4 +42,7 @@ public class FieldReport
 
     [JsonPropertyName("subjectType")]
     public string? SubjectType { get; set; }
+
+    [JsonPropertyName("processedAt")]
+    public DateTimeOffset? ProcessedAt { get; set; }
 }

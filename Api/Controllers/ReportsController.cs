@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api")]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;
@@ -28,22 +28,33 @@ public class ReportsController : ControllerBase
         FieldReport? report =await _reportService.GetReportByIdAsync(reportId,cancellationToken);
         if (report is null)
         {
-            return NotFound(new
-            {
-                message = $"Report {reportId} was not found"
-            });
+            return NotFound(new{message =$"Report {reportId} was not found"});
         }
         return Ok(report);
     }
 
     [HttpGet("search")]
-    public async Task<ActionResult<List<FieldReport>>> Search(string text,CancellationToken cancellationToken)
+    public async Task<ActionResult<List<FieldReport>>> Search([FromQuery] string text,CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             return BadRequest("Search text is required");
         }
         List<FieldReport> reports =await _reportService.SearchReportsAsync(text,cancellationToken);
+        return Ok(reports);
+    }
+
+    [HttpGet("by-subject/{subjectId}")]
+    public async Task<ActionResult<List<FieldReport>>> GetBySubjectId(string subjectId,CancellationToken cancellationToken)
+    {
+        List<FieldReport> reports =await _reportService.GetAllBySubjectId(subjectId,cancellationToken);
+        return Ok(reports);
+    }
+    
+    [HttpGet("reports")]
+    public async Task<ActionResult<List<FieldReport>>> GetReports([FromQuery] string? theater,[FromQuery] string? sector,[FromQuery] string? location,[FromQuery] string? priorities,[FromQuery] DateTimeOffset? from,[FromQuery] DateTimeOffset? to,CancellationToken cancellationToken)
+    {
+        List<FieldReport> reports =await _reportService.GetReportsAsync(theater,sector,location,priorities,from,to,cancellationToken);
         return Ok(reports);
     }
 }
