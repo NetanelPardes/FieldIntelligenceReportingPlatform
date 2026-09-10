@@ -209,4 +209,86 @@ public class ReportService : IReportService
 
         return response.Documents.ToList();
     }
+    public async Task<List<FieldReport>> SearchReportsAsync(string? Message,string? theater,string? sector,string? location,List<string>? priorities,string? reportType,DateTimeOffset? from,DateTimeOffset? to,CancellationToken cancellationToken)
+    {
+        List<Action<QueryDescriptor<FieldReport>>> must = new();
+        List<Action<QueryDescriptor<FieldReport>>> filters = new();
+        if (!string.IsNullOrWhiteSpace(Message))
+        {
+            filters.Add(query => query.Match(match => match.Field("Message").Query(Message)));
+        }
+        if (!string.IsNullOrWhiteSpace(theater))
+        {
+            filters.Add(query => query.Term(match => match.Field("theater").Value(theater)));
+        }
+        if (!string.IsNullOrWhiteSpace(sector))
+        {
+            filters.Add(query => query.Term(match => match.Field("sector").Value(sector)));
+        }
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            filters.Add(query => query.Term(match => match.Field("location").Value(location)));
+        }
+        if (!string.IsNullOrWhiteSpace(reportType))
+        {
+            filters.Add(query => query.Term (match => match.Field("reportType").Value(reportType)));
+        }
+        if (priorities is not null && priorities.Count > 0)
+        {
+            filters.Add(query => query.Terms(terms => terms.Field(field => field.Priority).Term(new TermsQueryField(priorities.Select(priority =>FieldValue.String(priority)).ToArray()))));
+        }
+        if (from.HasValue || to.HasValue)
+        {
+            filters.Add(query => query.Range(range => range.DateRange(dateRange =>{dateRange.Field("@timestamp");if (from.HasValue){dateRange.Gte(from.Value.ToString("O"));}if (to.HasValue){dateRange.Lte(to.Value.ToString("O"));}})));
+        }
+
+        var response =
+            await _client.SearchAsync<FieldReport>(
+                search =>
+                {
+                    search
+                        .Index(_indexName)
+                        .Size(100)
+                        .Sort(sort => sort
+                            .Field(
+                                field => field.Timestamp,
+                                new FieldSort
+                                {
+                                    Order = SortOrder.Desc
+                                }
+                            )
+                        );
+
+                    if (must.Count > 0 || filters.Count > 0)
+                    {
+                        search.Query(query => query
+                            .Bool(boolean =>
+                            {
+                                if (must.Count > 0)
+                                {
+                                    boolean.Must(
+                                        must.ToArray()
+                                    );
+                                }
+
+                                if (filters.Count > 0)
+                                {
+                                    boolean.Filter(
+                                        filters.ToArray()
+                                    );
+                                }
+                            })
+                        );
+                    }
+                },
+
+                cancellationToken
+            );
+        if (!response.IsValidResponse)
+        {
+            throw new InvalidOperationException("Failed to search reports");
+        }
+        return response.Documents.ToList();
+    }
+    
 }

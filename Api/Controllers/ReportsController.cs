@@ -57,4 +57,11 @@ public class ReportsController : ControllerBase
         List<FieldReport> reports =await _reportService.GetReportsAsync(theater,sector,location,priorities,from,to,cancellationToken);
         return Ok(reports);
     }
+
+    [HttpGet("reports/search")]
+    public async Task<ActionResult<List<FieldReport>>> SearchReportsAsync([FromQuery] string? text,[FromQuery] string? theater,[FromQuery] string? sector,[FromQuery] string? location,[FromQuery] List<string>? priorities,[FromQuery] string? reportType,[FromQuery] DateTimeOffset? from,[FromQuery] DateTimeOffset? to,CancellationToken cancellationToken)
+    {
+        List<FieldReport> reports =await _reportService.SearchReportsAsync(text,theater,sector,location,priorities,reportType,from,to,cancellationToken);
+        return Ok(reports);
+    }
 }
