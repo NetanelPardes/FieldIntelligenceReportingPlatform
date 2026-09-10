@@ -291,4 +291,69 @@ public class ReportService : IReportService
         return response.Documents.ToList();
     }
     
+    public async Task<ReportsStatisticsDto> GetStatisticsAsync(CancellationToken cancellationToken)
+    {
+        var response =await _client.SearchAsync<FieldReport>(
+                search => search
+                    .Index(_indexName)
+                    .Size(0)
+                    .Aggregations(aggregations => aggregations
+                        .Add(
+                            "by_priority",
+                            aggregation => aggregation
+                                .Terms(terms => terms
+                                    .Field("priority")
+                                    .Size(100)
+                                )
+                        )
+                        .Add(
+                            "by_report_type",
+                            aggregation => aggregation
+                                .Terms(terms => terms
+                                    .Field("reportType")
+                                    .Size(100)
+                                )
+                        )
+                        .Add(
+                            "by_theater",
+                            aggregation => aggregation
+                                .Terms(terms => terms
+                                    .Field("theater")
+                                    .Size(100)
+                                )
+                        )
+                    ),
+                cancellationToken
+            );
+        if (!response.IsValidResponse)
+        {
+            throw new InvalidOperationException($"Failed to get report statistics: " +$"{response.ElasticsearchServerError?.Error?.Reason}");
+        }
+        var priorityAggregation =response.Aggregations?.GetStringTerms("by_priority")?? throw new InvalidOperationException("Priority aggregation was not returned");
+        var reportTypeAggregation =response.Aggregations?.GetStringTerms("by_report_type")?? throw new InvalidOperationException( "Report type aggregation was not returned" );
+        var theaterAggregation = response.Aggregations?.GetStringTerms("by_theater")?? throw new InvalidOperationException("Theater aggregation was not returned");
+        Dictionary<string, int> priorityCounts = new();
+        foreach (var bucket in priorityAggregation.Buckets)
+        {
+            priorityCounts[bucket.Key.ToString()] =(int)bucket.DocCount;
+        }
+        Dictionary<string, int> reportTypeCounts = new();
+        foreach (var bucket in reportTypeAggregation.Buckets)
+        {
+            reportTypeCounts[bucket.Key.ToString()] =(int)bucket.DocCount;
+        }
+        Dictionary<string, int> theaterCounts = new();
+        foreach (var bucket in theaterAggregation.Buckets)
+        {
+            theaterCounts[bucket.Key.ToString()] =(int)bucket.DocCount;
+        }
+        ReportsStatisticsDto statistics = new()
+        {
+            ByPriority = priorityCounts,
+            ByReportType = reportTypeCounts,
+            ByTheater = theaterCounts
+        };
+
+        return statistics;
+    }
 }
